@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RemoteCamera</title>
+  <link rel="stylesheet" href="/monitor.css" />
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="kicker">RemoteCamera / Tailscale</div>
+        <h1>スマホ監視ダッシュボード</h1>
+        <p class="hero-description">USBカメラの映像と音声をスマホで確認しながら、その場で接続デバイスを切り替えられる監視ページです。</p>
+      </div>
+      <div class="hero-meta">
+        <div class="pill" id="statePill" data-state="waiting">起動待ち</div>
+        <div class="chips">
+          <span class="chip">Local: __LOCAL_URL__</span>
+          <span class="chip">Tailscale: __TAILSCALE_URL__</span>
+        </div>
+        <div class="control-rail">
+          <div class="control-stack">
+            <label class="control-label" for="cameraSelect">接続デバイス</label>
+            <select class="device-select" id="cameraSelect"></select>
+          </div>
+          <div class="control-row">
+            <button class="action-button action-button--record" id="recordStartBtn" type="button">録画</button>
+            <button class="action-button action-button--stop" id="recordStopBtn" type="button">停止</button>
+          </div>
+          <div class="control-row control-row--single">
+            <button class="action-button action-button--audio" id="audioListenBtn" type="button">音声を聴く</button>
+          </div>
+          <div class="target-box">
+            <div class="target-label">録画先</div>
+            <div class="target-value" id="recordTargetValue">C:\RemoteCamera\</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Live View</div>
+            <h2>カメラプレビュー</h2>
+          </div>
+          <div class="live-badge" id="liveBadge">WAIT</div>
+        </div>
+        <div class="preview-frame">
+          <div class="preview-shade" id="previewShade">
+            <div>
+              <strong id="previewHeadline">カメラの準備中です。</strong>
+              <div id="previewDetail">USBカメラが使えるようになると、ここに最新フレームが表示されます。</div>
+            </div>
+          </div>
+          <img id="snapshot" alt="camera preview" />
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="section-label">Status</div>
+            <h2>監視情報</h2>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="stat-grid">
+            <div class="stat">
+              <div class="stat-label">状態</div>
+              <div class="stat-value" id="statusValue">未起動</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">録画</div>
+              <div class="stat-value" id="recordingValue">停止中</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">カメラ</div>
+              <div class="stat-value" id="cameraValue">未選択</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">保存先</div>
+              <div class="stat-value" id="pathValue">未選択</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">音声</div>
+              <div class="stat-value" id="audioValue">停止中</div>
+            </div>
+          </div>
+
+          <div class="urls">
+            <div class="url-item">
+              <div class="url-label">ローカル URL</div>
+              <div class="url-value" id="localUrlValue">__LOCAL_URL__</div>
+            </div>
+            <div class="url-item">
+              <div class="url-label">Tailscale URL</div>
+              <div class="url-value" id="tailscaleUrlValue">__TAILSCALE_URL__</div>
+            </div>
+          </div>
+
+          <div class="footer-note">デバイスを選ぶとそのまま切り替わります。音声はスマホ側で再生開始を押したときだけ接続し、録画中はカメラ切替を止めています。</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <script>
+    const statePill = document.getElementById('statePill');
+    const liveBadge = document.getElementById('liveBadge');
+    const statusValue = document.getElementById('statusValue');
+    const recordingValue = document.getElementById('recordingValue');
+    const cameraValue = document.getElementById('cameraValue');
+    const pathValue = document.getElementById('pathValue');
+    const audioValue = document.getElementById('audioValue');
+    const localUrlValue = document.getElementById('localUrlValue');
+    const tailscaleUrlValue = document.getElementById('tailscaleUrlValue');
+    const recordStartBtn = document.getElementById('recordStartBtn');
+    const recordStopBtn = document.getElementById('recordStopBtn');
+    const recordTargetValue = document.getElementById('recordTargetValue');
+    const cameraSelect = document.getElementById('cameraSelect');
+    const audioListenBtn = document.getElementById('audioListenBtn');
+    const previewShade = document.getElementById('previewShade');
+    const previewHeadline = document.getElementById('previewHeadline');
+    const previewDetail = document.getElementById('previewDetail');
+    const snapshot = document.getElementById('snapshot');
+    let actionBusy = false;
+    let cameraSwitchBusy = false;
+    let cameraReady = false;
+    let audioSocket = null;
+    let audioContext = null;
+    let audioConnected = false;
+    let nextAudioTime = 0;
+    let lastDeviceSignature = '';
+
+    function updateCameraSelectState(data) {
+      cameraSelect.disabled = actionBusy || cameraSwitchBusy || !!data.recording || cameraSelect.options.length === 0;
+    }
+
+    function updateAudioButtonState(data) {
+      const audioRunning = !!data.audioRunning;
+      audioValue.textContent = data.audioStatus || (audioRunning ? '配信中' : '停止中');
+      audioListenBtn.disabled = !audioRunning;
+      audioListenBtn.textContent = audioConnected ? '音声を止める' : '音声を聴く';
+    }
+
+    function updateRecordingControls(data) {
+      const defaultTarget = (data.defaultRecordingDirectory || 'C:\\RemoteCamera') + '\\';
+      const targetText = data.recordingPath || data.recordingTargetPath || defaultTarget;
+
+      recordTargetValue.textContent = targetText;
+      recordStartBtn.disabled = actionBusy || !!data.recording;
+      recordStopBtn.disabled = actionBusy || !data.recording;
+      recordStartBtn.textContent = data.recording ? '録画中' : '録画';
+      updateCameraSelectState(data);
+      updateAudioButtonState(data);
+    }
+
+    function buildCameraOptionLabel(device) {
+      return device.displayName + ' (' + device.captureIndex + ')';
+    }
+
+    async function refreshDevices(preferredCaptureIndex) {
+      try {
+        const response = await fetch('/devices', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error('devices');
+        }
+
+        const data = await response.json();
+        const signature = JSON.stringify(data.devices || []);
+        const currentCaptureIndex = typeof preferredCaptureIndex === 'number'
+          ? preferredCaptureIndex
+          : data.currentCaptureIndex;
+
+        if (signature !== lastDeviceSignature) {
+          lastDeviceSignature = signature;
+          cameraSelect.innerHTML = '';
+
+          for (const device of data.devices || []) {
+            const option = document.createElement('option');
+            option.value = String(device.captureIndex);
+            option.textContent = buildCameraOptionLabel(device);
+            cameraSelect.appendChild(option);
+          }
+        }
+
+        if (typeof currentCaptureIndex === 'number') {
+          cameraSelect.value = String(currentCaptureIndex);
+        }
+
+        cameraSelect.disabled = cameraSwitchBusy || cameraSelect.options.length === 0;
+      } catch {
+        cameraSelect.disabled = true;
+      }
+    }
+
+    async function selectCamera(captureIndex) {
+      if (cameraSwitchBusy) {
+        return;
+      }
+
+      cameraSwitchBusy = true;
+      cameraSelect.disabled = true;
+
+      try {
+        const response = await fetch('/camera/select', {
+          method: 'POST',
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ captureIndex })
+        });
+
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(data && data.message ? data.message : 'camera');
+        }
+      } catch {
+        // 結果は直後に状態と一覧を取り直す。
+      } finally {
+        cameraSwitchBusy = false;
+      }
+
+      await refreshStatus();
+      await refreshDevices(captureIndex);
+    }
+
+    async function ensureAudioContext() {
+      if (!audioContext) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContextClass();
+      }
+
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+    }
+
+    function closeAudioStream() {
+      audioConnected = false;
+      nextAudioTime = 0;
+
+      if (audioSocket) {
+        try {
+          audioSocket.close();
+        } catch {
+          // 切断時は続行する。
+        }
+      }
+
+      audioSocket = null;
+      audioListenBtn.textContent = '音声を聴く';
+    }
+
+    function scheduleAudioChunk(arrayBuffer) {
+      if (!audioContext) {
+        return;
+      }
+
+      const pcm = new Int16Array(arrayBuffer);
+      if (pcm.length === 0) {
+        return;
+      }
+
+      const buffer = audioContext.createBuffer(1, pcm.length, 16000);
+      const channelData = buffer.getChannelData(0);
+
+      for (let index = 0; index < pcm.length; index++) {
+        channelData[index] = pcm[index] / 32768;
+      }
+
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContext.destination);
+
+      const startTime = Math.max(audioContext.currentTime + 0.04, nextAudioTime);
+      source.start(startTime);
+      nextAudioTime = startTime + buffer.duration;
+    }
+
+    async function openAudioStream() {
+      await ensureAudioContext();
+
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      audioSocket = new WebSocket(protocol + '//' + location.host + '/audio/ws');
+      audioSocket.binaryType = 'arraybuffer';
+
+      audioSocket.onopen = () => {
+        audioConnected = true;
+        audioListenBtn.textContent = '音声を止める';
+      };
+
+      audioSocket.onmessage = event => {
+        scheduleAudioChunk(event.data);
+      };
+
+      audioSocket.onclose = () => {
+        closeAudioStream();
+      };
+
+      audioSocket.onerror = () => {
+        closeAudioStream();
+      };
+    }
+
+    async function refreshStatus() {
+      try {
+        const response = await fetch('/status', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error('status');
+        }
+
+        const data = await response.json();
+        cameraReady = !!data.cameraReady;
+
+        const recordingText = data.recording ? '録画中' : '停止中';
+        const cameraText = data.cameraName ? data.cameraName : '未選択';
+        const pathText = data.recordingPath ? data.recordingPath : '未選択';
+        const statusText = data.cameraStatus ? data.cameraStatus : '未起動';
+
+        statusValue.textContent = statusText;
+        recordingValue.textContent = recordingText;
+        cameraValue.textContent = cameraText;
+        pathValue.textContent = pathText;
+        localUrlValue.textContent = data.localUrl || localUrlValue.textContent;
+        tailscaleUrlValue.textContent = data.tailscaleUrl ? data.tailscaleUrl : '未検出';
+
+        const state = data.recording ? 'recording' : cameraReady ? 'ready' : 'waiting';
+        statePill.dataset.state = state;
+        statePill.textContent = data.recording ? '録画中' : cameraReady ? '待機中' : '起動待ち';
+        liveBadge.textContent = data.recording ? 'REC' : cameraReady ? 'LIVE' : 'WAIT';
+
+        if (cameraReady) {
+          previewShade.style.display = 'none';
+          snapshot.style.display = 'block';
+          refreshSnapshot();
+          previewHeadline.textContent = data.recording ? '録画しながら監視中です。' : 'ライブプレビューを表示しています。';
+          previewDetail.textContent = data.recording ? '録画中はカメラ切替を一時停止しています。' : 'スマホでも見やすい比率で最新フレームを更新します。';
+        } else {
+          previewShade.style.display = 'grid';
+          snapshot.style.display = 'none';
+          previewHeadline.textContent = 'カメラの準備中です。';
+          previewDetail.textContent = 'USBカメラが使えるようになると、ここに最新フレームが表示されます。';
+        }
+
+        updateRecordingControls(data);
+        if (!cameraSwitchBusy) {
+          await refreshDevices(data.cameraCaptureIndex);
+        }
+      } catch {
+        statusValue.textContent = '状態の取得に失敗しました。';
+        statePill.dataset.state = 'waiting';
+        statePill.textContent = '通信エラー';
+        liveBadge.textContent = 'WAIT';
+        previewShade.style.display = 'grid';
+        snapshot.style.display = 'none';
+        previewHeadline.textContent = '状態取得に失敗しました。';
+        previewDetail.textContent = 'しばらく待って再読込してください。';
+        recordStartBtn.disabled = true;
+        recordStopBtn.disabled = true;
+        cameraSelect.disabled = true;
+        audioListenBtn.disabled = true;
+      }
+    }
+
+    async function executeRecordingAction(url, busyText) {
+      if (actionBusy) {
+        return;
+      }
+
+      actionBusy = true;
+      recordStartBtn.disabled = true;
+      recordStopBtn.disabled = true;
+      recordStartBtn.textContent = busyText;
+
+      try {
+        const response = await fetch(url, { method: 'POST', cache: 'no-store' });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(data && data.message ? data.message : 'record');
+        }
+      } catch {
+        // 結果は直後に状態を取り直すので、ここでは何もしない。
+      } finally {
+        actionBusy = false;
+      }
+
+      await refreshStatus();
+    }
+
+    recordStartBtn.addEventListener('click', () => executeRecordingAction('/record/start', '開始中'));
+    recordStopBtn.addEventListener('click', () => executeRecordingAction('/record/stop', '停止中'));
+    cameraSelect.addEventListener('change', () => {
+      const selectedValue = Number(cameraSelect.value);
+      if (!Number.isNaN(selectedValue)) {
+        selectCamera(selectedValue);
+      }
+    });
+    audioListenBtn.addEventListener('click', async () => {
+      if (audioConnected) {
+        closeAudioStream();
+        return;
+      }
+
+      try {
+        await openAudioStream();
+      } catch {
+        closeAudioStream();
+      }
+    });
+
+    function refreshSnapshot() {
+      if (!cameraReady) {
+        return;
+      }
+
+      snapshot.src = '/snapshot.jpg?t=' + Date.now();
+    }
+
+    snapshot.onload = () => {
+      previewShade.style.display = 'none';
+      snapshot.style.display = 'block';
+    };
+
+    snapshot.onerror = () => {
+      if (cameraReady) {
+        previewHeadline.textContent = 'プレビュー画像の取得に失敗しました。';
+        previewDetail.textContent = 'カメラが一時的に応答していない可能性があります。';
+        previewShade.style.display = 'grid';
+        snapshot.style.display = 'none';
+      }
+    };
+
+    refreshDevices();
+    refreshStatus();
+    setInterval(refreshStatus, 1000);
+    setInterval(refreshDevices, 5000);
+    setInterval(refreshSnapshot, 500);
+  </script>
+</body>
+</html>
