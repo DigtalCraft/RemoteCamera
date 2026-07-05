@@ -322,6 +322,8 @@ namespace RemoteCamera
         Stop,
         Pause,
         Play,
+        Exit,
+        Settings
     }
 
 }

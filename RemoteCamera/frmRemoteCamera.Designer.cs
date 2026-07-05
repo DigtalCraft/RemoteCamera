@@ -299,11 +299,14 @@ namespace RemoteCamera
             buttonApplyCamera.AutoSize = true;
             buttonApplyCamera.FlatAppearance.BorderSize = 1;
             buttonApplyCamera.FlatStyle = FlatStyle.Flat;
+            buttonApplyCamera.Location = new Point(571, 7);
             buttonApplyCamera.Margin = new Padding(3, 3, 10, 3);
             buttonApplyCamera.MinimumSize = new Size(120, 42);
             buttonApplyCamera.Name = "buttonApplyCamera";
             buttonApplyCamera.Padding = new Padding(12, 0, 12, 0);
             buttonApplyCamera.Size = new Size(120, 42);
+            buttonApplyCamera.TabIndex = 2;
+            buttonApplyCamera.Text = "ローカル反映";
             buttonApplyCamera.UseVisualStyleBackColor = false;
             // 
             // buttonApplyNetworkCamera
@@ -326,11 +329,13 @@ namespace RemoteCamera
             buttonRefreshDevices.AutoSize = true;
             buttonRefreshDevices.FlatAppearance.BorderSize = 1;
             buttonRefreshDevices.FlatStyle = FlatStyle.Flat;
+            buttonRefreshDevices.Location = new Point(861, 7);
             buttonRefreshDevices.Margin = new Padding(3, 3, 10, 3);
             buttonRefreshDevices.MinimumSize = new Size(92, 42);
             buttonRefreshDevices.Name = "buttonRefreshDevices";
             buttonRefreshDevices.Padding = new Padding(12, 0, 12, 0);
             buttonRefreshDevices.Size = new Size(92, 42);
+            buttonRefreshDevices.TabIndex = 4;
             buttonRefreshDevices.Text = "再読込";
             buttonRefreshDevices.UseVisualStyleBackColor = false;
             // 
@@ -354,11 +359,13 @@ namespace RemoteCamera
             buttonSelectPath.AutoSize = true;
             buttonSelectPath.FlatAppearance.BorderSize = 1;
             buttonSelectPath.FlatStyle = FlatStyle.Flat;
+            buttonSelectPath.Location = new Point(1129, 7);
             buttonSelectPath.Margin = new Padding(3, 3, 10, 3);
             buttonSelectPath.MinimumSize = new Size(142, 42);
             buttonSelectPath.Name = "buttonSelectPath";
             buttonSelectPath.Padding = new Padding(12, 0, 12, 0);
             buttonSelectPath.Size = new Size(142, 42);
+            buttonSelectPath.TabIndex = 6;
             buttonSelectPath.Text = "新規選択";
             buttonSelectPath.TextImageRelation = TextImageRelation.ImageBeforeText;
             buttonSelectPath.UseVisualStyleBackColor = false;
@@ -368,11 +375,13 @@ namespace RemoteCamera
             buttonStartRecord.AutoSize = true;
             buttonStartRecord.FlatAppearance.BorderSize = 1;
             buttonStartRecord.FlatStyle = FlatStyle.Flat;
+            buttonStartRecord.Location = new Point(1129, 7);
             buttonStartRecord.Margin = new Padding(3, 3, 10, 3);
             buttonStartRecord.MinimumSize = new Size(120, 42);
             buttonStartRecord.Name = "buttonStartRecord";
             buttonStartRecord.Padding = new Padding(12, 0, 12, 0);
             buttonStartRecord.Size = new Size(120, 42);
+            buttonStartRecord.TabIndex = 7;
             buttonStartRecord.Text = "録画";
             buttonStartRecord.TextImageRelation = TextImageRelation.ImageBeforeText;
             buttonStartRecord.UseVisualStyleBackColor = false;
@@ -382,11 +391,13 @@ namespace RemoteCamera
             buttonStopRecord.AutoSize = true;
             buttonStopRecord.FlatAppearance.BorderSize = 1;
             buttonStopRecord.FlatStyle = FlatStyle.Flat;
+            buttonStopRecord.Location = new Point(5, 55);
             buttonStopRecord.Margin = new Padding(3, 3, 10, 3);
             buttonStopRecord.MinimumSize = new Size(120, 42);
             buttonStopRecord.Name = "buttonStopRecord";
             buttonStopRecord.Padding = new Padding(12, 0, 12, 0);
             buttonStopRecord.Size = new Size(120, 42);
+            buttonStopRecord.TabIndex = 8;
             buttonStopRecord.Text = "停止";
             buttonStopRecord.TextImageRelation = TextImageRelation.ImageBeforeText;
             buttonStopRecord.UseVisualStyleBackColor = false;
@@ -396,11 +407,13 @@ namespace RemoteCamera
             buttonStopPreview.AutoSize = true;
             buttonStopPreview.FlatAppearance.BorderSize = 1;
             buttonStopPreview.FlatStyle = FlatStyle.Flat;
+            buttonStopPreview.Location = new Point(144, 55);
             buttonStopPreview.Margin = new Padding(3, 3, 10, 3);
             buttonStopPreview.MinimumSize = new Size(146, 42);
             buttonStopPreview.Name = "buttonStopPreview";
             buttonStopPreview.Padding = new Padding(12, 0, 12, 0);
             buttonStopPreview.Size = new Size(146, 42);
+            buttonStopPreview.TabIndex = 9;
             buttonStopPreview.Text = "プレビュー停止";
             buttonStopPreview.TextImageRelation = TextImageRelation.ImageBeforeText;
             buttonStopPreview.UseVisualStyleBackColor = false;
@@ -410,14 +423,17 @@ namespace RemoteCamera
             buttonExit.AutoSize = true;
             buttonExit.FlatAppearance.BorderSize = 1;
             buttonExit.FlatStyle = FlatStyle.Flat;
+            buttonExit.Location = new Point(307, 55);
             buttonExit.Margin = new Padding(3, 3, 10, 3);
             buttonExit.MinimumSize = new Size(120, 42);
             buttonExit.Name = "buttonExit";
             buttonExit.Padding = new Padding(12, 0, 12, 0);
             buttonExit.Size = new Size(120, 42);
+            buttonExit.TabIndex = 10;
             buttonExit.Text = "終了";
             buttonExit.TextImageRelation = TextImageRelation.ImageBeforeText;
             buttonExit.UseVisualStyleBackColor = false;
+            commandBar.Controls.AddRange(new Control[] { cameraDeviceComboBox, networkCameraComboBox, buttonApplyCamera, buttonApplyNetworkCamera, buttonRefreshDevices, buttonNetworkCameraMaster, buttonSelectPath, buttonStartRecord, buttonStopRecord, buttonStopPreview, buttonExit });
             // 
             // contentSplit
             // 
