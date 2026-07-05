@@ -12,7 +12,6 @@
       <div class="hero-copy">
         <div class="kicker">RemoteCamera / Tailscale</div>
         <h1>スマホ監視ダッシュボード</h1>
-        <p class="hero-description">ローカルカメラと RTSP ネットワークカメラのどちらかを選び、映像と音声をスマホで確認できる監視ページです。</p>
       </div>
       <div class="hero-meta">
         <div class="pill" id="statePill" data-state="waiting">起動待ち</div>
@@ -20,18 +19,17 @@
           <span class="chip">Local: __LOCAL_URL__</span>
           <span class="chip">Tailscale: __TAILSCALE_URL__</span>
         </div>
-          <div class="control-rail">
-            <div class="control-stack">
-              <label class="control-label" for="cameraSelect">ローカルカメラ</label>
-              <select class="device-select" id="cameraSelect"></select>
-            </div>
+        <div class="control-rail">
+          <div class="control-stack">
+            <select class="device-select" id="cameraSelect"></select>
+          </div>
             <div class="control-stack">
               <label class="control-label" for="networkCameraSelect">ネットワークカメラ</label>
               <select class="device-select" id="networkCameraSelect"></select>
             </div>
-            <div class="control-row">
-              <button class="action-button action-button--record" id="recordStartBtn" type="button">録画</button>
-              <button class="action-button action-button--stop" id="recordStopBtn" type="button">停止</button>
+          <div class="control-row">
+            <button class="action-button action-button--record" id="recordStartBtn" type="button">録画</button>
+            <button class="action-button action-button--stop" id="recordStopBtn" type="button">停止</button>
           </div>
           <div class="control-row control-row--single">
             <button class="action-button action-button--audio" id="audioListenBtn" type="button">音声を聴く</button>
@@ -171,7 +169,7 @@
                 <div class="target-label">設定状態</div>
                 <div class="target-value" id="configStatusValue">ここに保存や通信確認の結果を表示します。</div>
               </div>
-            </div>
+        </div>
           </details>
         </div>
       </aside>
@@ -598,7 +596,7 @@
         const sample = Math.abs(pcm[index]);
         if (sample > peak) {
           peak = sample;
-        }
+    }
       }
 
       return Math.min(1, peak / 32768);
@@ -645,7 +643,6 @@
 
       const source = audioContext.createBufferSource();
       source.buffer = buffer;
-      source.connect(audioGainNode);
 
       const startTime = Math.max(audioContext.currentTime + 0.04, nextAudioTime);
       source.start(startTime);
@@ -812,8 +809,6 @@
         cameraReady = !!data.cameraReady;
 
         const recordingText = data.recording ? '録画中' : '停止中';
-        const sourceText = data.cameraSourceType === 'NetworkRtsp' ? 'RTSP' : 'ローカル';
-        const cameraText = data.cameraName ? data.cameraName + ' (' + sourceText + ')' : '未選択';
         const pathText = data.recordingPath ? data.recordingPath : '未選択';
         const statusText = data.cameraStatus ? data.cameraStatus : '未起動';
 

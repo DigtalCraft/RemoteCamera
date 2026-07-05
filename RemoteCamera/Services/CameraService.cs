@@ -227,46 +227,6 @@ namespace RemoteCamera
 
             try
             {
-                await ActivateOpenedCameraAsync(
-                    openedCapture,
-                    selectedDevice.SourceType,
-                    selectedDevice.DisplayName,
-                    selectedDevice.CaptureIndex,
-                    null,
-                    null);
-            }
-            catch
-            {
-                openedCapture.Release();
-                openedCapture.Dispose();
-
-                lock (syncRoot)
-                {
-                    statusText = BuildStatusText();
-                }
-
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// RTSP ネットワークカメラを初期化して、プレビュー取得を開始する。
-        /// </summary>
-        /// <param name="cameraOption">利用するネットワークカメラ候補。</param>
-        public async Task InitializeAsync(NetworkCameraOption cameraOption)
-        {
-            ThrowIfDisposed();
-
-            string? currentCameraId;
-            lock (syncRoot)
-            {
-                currentCameraId = selectedNetworkCameraId;
-                if (isRecording)
-                {
-                    throw new InvalidOperationException("録画中はカメラを切り替えられません。先に録画を停止してください。");
-                }
-
-                statusText = "ネットワークカメラへ接続しています。";
             }
 
             if (currentCameraId == cameraOption.CameraId && selectedSourceType == CameraSourceType.NetworkRtsp && IsReady)
@@ -537,13 +497,6 @@ namespace RemoteCamera
         /// </summary>
         /// <param name="openedCapture">新しく開いたカメラ。</param>
         /// <param name="selectedDevice">反映するカメラ情報。</param>
-        private async Task ActivateOpenedCameraAsync(
-            VideoCapture openedCapture,
-            CameraSourceType sourceType,
-            string displayName,
-            int? captureIndex,
-            string? networkCameraId,
-            string? networkCameraUrl)
         {
             Task? previousLoopTask;
             CancellationTokenSource? previousCts;
@@ -560,11 +513,6 @@ namespace RemoteCamera
                 previousFrame = latestFrame;
 
                 capture = openedCapture;
-                selectedDeviceName = displayName;
-                selectedCaptureIndex = captureIndex;
-                selectedNetworkCameraId = networkCameraId;
-                selectedNetworkCameraUrl = networkCameraUrl;
-                selectedSourceType = sourceType;
                 previewEnabled = true;
                 recordingFrameSize = new CvSize((int)openedCapture.FrameWidth, (int)openedCapture.FrameHeight);
                 latestFrame = null;
@@ -869,11 +817,7 @@ namespace RemoteCamera
                 return "未起動";
             }
 
-            var deviceName = selectedDeviceName ?? "カメラ";
-            var sourceLabel = selectedSourceType == CameraSourceType.NetworkRtsp ? "RTSP" : "ローカル";
             var baseText = isRecording && !string.IsNullOrWhiteSpace(recordingPath)
-                ? $"録画中: {Path.GetFileName(recordingPath)} / {deviceName} ({sourceLabel})"
-                : $"{deviceName} ({sourceLabel}) を使用中";
 
             return previewEnabled
                 ? baseText

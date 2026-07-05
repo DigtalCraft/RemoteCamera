@@ -1,6 +1,3 @@
 <Solution>
-  <Project Path="../Setup/Setup.vdproj" Type="Installer">
-    <Build />
-  </Project>
   <Project Path="RemoteCamera.csproj" />
 </Solution>

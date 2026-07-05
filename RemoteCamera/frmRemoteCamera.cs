@@ -119,11 +119,7 @@ namespace RemoteCamera
             try
             {
                 var selectedDevice = GetSelectedCameraDevice();
-                var selectedNetworkCamera = GetSelectedNetworkCamera();
-                if (selectedDevice is not null)
-                {
-                    WriteStartupLog($"InitializeStartupAsync: camera start: {selectedDevice.DisplayName}");
-                    await cameraService.InitializeAsync(selectedDevice);
+                await cameraService.InitializeAsync(selectedDevice);
                 }
                 else if (selectedNetworkCamera is not null)
                 {
@@ -580,7 +576,6 @@ namespace RemoteCamera
             }
 
             statusValueLabel.Text = cameraService.StatusText;
-            cameraValueLabel.Text = selectedCameraLabel;
             recordingPathValueLabel.Text = isRecording && !string.IsNullOrWhiteSpace(cameraService.RecordingPath)
                 ? cameraService.RecordingPath!
                 : recordingTargetText;
@@ -633,8 +628,6 @@ namespace RemoteCamera
             buttonStopRecord.Enabled = isRecording;
             buttonStopPreview.Enabled = isReady;
             buttonStopPreview.Text = isPreviewEnabled ? "プレビュー停止" : "プレビュー再開";
-            buttonApplyCamera.Text = cameraSwitching ? "切替中" : "ローカル反映";
-            buttonApplyNetworkCamera.Text = cameraSwitching ? "切替中" : "ネットワーク反映";
 
             SyncSelectedCameraDevice();
             SyncSelectedNetworkCamera();

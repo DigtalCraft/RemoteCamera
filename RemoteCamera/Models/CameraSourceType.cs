@@ -8,11 +8,5 @@ namespace RemoteCamera
         /// <summary>
         /// Windows に登録されている映像入力デバイス。
         /// </summary>
-        DeviceIndex,
-
-        /// <summary>
-        /// RTSP で接続するネットワークカメラ。
-        /// </summary>
-        NetworkRtsp
     }
 }

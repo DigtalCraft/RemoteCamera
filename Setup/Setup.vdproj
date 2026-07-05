@@ -273,6 +273,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_9C1014EE014E483EB9B1BD44A3A11CE0"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_AA0E3F5F370E20A6DC3F08F6B2A36E9D"
         "OwnerKey" = "8:_7C2B270FA8F32F70990A36399F801ABD"
         "MsmSig" = "8:_UNDEFINED"
@@ -1472,6 +1478,26 @@
             "IsDependency" = "11:TRUE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_9C1014EE014E483EB9B1BD44A3A11CE0"
+            {
+            "SourcePath" = "8:..\\RemoteCamera\\ReadMe.txt"
+            "TargetName" = "8:ReadMe.txt"
+            "Tag" = "8:"
+            "Folder" = "8:_C5F5EADFD5624967BDC464DECEC50504"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_AA0E3F5F370E20A6DC3F08F6B2A36E9D"
             {
             "AssemblyRegister" = "3:1"
@@ -1870,7 +1896,6 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:RemoteCamera"
         "ProductCode" = "8:{D0DE2E9C-F709-459F-BB11-975F33AEF522}"
-        "PackageCode" = "8:{7F18580B-6690-4DD3-8AF9-C743C40CFEB1}"
         "UpgradeCode" = "8:{1D1CC358-2306-4AB8-8D89-3472DC94A586}"
         "AspNetVersion" = "8:2.0.50727.0"
         "RestartWWWService" = "11:FALSE"
