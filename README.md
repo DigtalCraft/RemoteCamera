@@ -1,23 +1,25 @@
-RemoteCamera is a Windows desktop app that captures camera video on a PC, records MP4 files, and exposes a smartphone-friendly monitor page over the local network or Tailscale.
+RemoteCamera is a Windows desktop app that captures camera video on a PC, 
+records MP4 files, and exposes a smartphone-friendly monitor page over the local network or Tailscale.
 
 ## 日本語
 
 ### 概要
 
-RemoteCamera は、Windows PC 上でカメラ映像を取得し、録画し、スマホのブラウザから確認する監視アプリです。
+- RemoteCamera は、Windows PC 上でカメラ映像を取得し、録画し、
+- スマホのブラウザから確認する監視アプリです。
 
 ### できること
 
-- Windows が認識するローカルカメラを選択
-- `NetworkCameras.json` に登録した RTSP カメラを選択
-- PC 画面でライブプレビュー
-- MP4 形式で録画
+- Windowsが認識するローカルカメラを選択
+- `NetworkCameras.json` に登録した RTSP カメラを選択(設定画面から設定可能)
+- PC 画面でプレビュー可能
+- MP4 形式で録画可能
 - スマホのブラウザで監視ページを表示
-- Tailscale 経由でのアクセス
-- PC のマイク音声をスマホへ配信
+- ※Tailscale経由でのアクセスになります。
+- PC のマイク音声をスマホへ配信。マイクの設定を既定の設定しなければなりません。
 - スマホ側で音量スライダーと音声レベルメーターを表示
-- PC 側とブラウザ側の両方からネットワークカメラ設定を編集
-- 自動検出で ONVIF 対応カメラと一般的な RTSP ポートを確認
+- PC 側とブラウザ側の両方からデバイスカメラとネットワークカメラを設定
+- 自動検出で ONVIF 対応カメラと一般的な RTSP ポートを確認可能
 
 ### 現在の構成
 
@@ -29,7 +31,7 @@ RemoteCamera は、Windows PC 上でカメラ映像を取得し、録画し、�
 
 ### ネットワークカメラ設定
 
-`NetworkCameras.json` はアプリ配置フォルダに置く設定ファイルです。
+`NetworkCameras.json` は設定ファイルです。
 
 主な項目:
 
@@ -60,23 +62,23 @@ RemoteCamera は、Windows PC 上でカメラ映像を取得し、録画し、�
 - ONVIF の WS-Discovery
 - RTSP の簡易ポート確認
 
-ONVIF 対応の一般的な Wi-Fi カメラは、ここで見つかる可能性があります。  
+ONVIFやRTFPの一般的なWi-Fiカメラを自動検出する可能性があります。  
 ただし、認証が必要な機種や、ONVIF に対応していない機種は手動登録が必要です。
 
 ### 使い方
 
 1. Windows PC で RemoteCamera を起動
 2. ローカルカメラまたはネットワークカメラを選択
-3. 必要なら `ネットワーク設定` で保存・編集・自動検出を実行
+3. `ネットワーク設定` で保存・編集・自動検出を実行
 4. 画面に出るローカル URL か Tailscale URL をスマホのブラウザで開く
 5. スマホ側でカメラを選び、録画や音声を操作する
 
 ### 注意事項
 
-- PC がロックしてもアプリが動き続けることが前提です
+- PC がロック・パスワード入力状態でもアプリは起動し続けます。
 - スリープ / 休止 / サインアウトに入ると監視は止まります
-- スマホのロック画面での常時表示は対象外です
-- Tailscale は同梱していません。別途インストールしてください
+- スマホのロック画面は対象外です
+- Tailscale は同梱していません。別途サイトからインストールしてください
 
 ## English
 
