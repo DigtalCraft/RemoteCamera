@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
+using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -22,12 +23,16 @@ namespace RemoteCamera
         private readonly AudioBroadcastService audioBroadcastService = new();
         private readonly int port;
         private readonly object syncRoot = new();
+        private readonly SemaphoreSlim restartGate = new(1, 1);
         private readonly string monitorHtmlTemplate;
         private readonly string monitorCssText;
 
         private WebApplication? app;
         private bool disposed;
         private string statusText = "未起動";
+        private string? listeningTailscaleAddress;
+        private CancellationTokenSource? tailscaleWatchCts;
+        private Task? tailscaleWatchTask;
 
         /// <summary>
         /// サーバーを初期化する。
@@ -125,13 +130,75 @@ namespace RemoteCamera
                 statusText = "監視ページを起動しています。";
             }
 
+            var tailscaleAddress = NetworkHelper.TryGetTailscaleIpv4Address();
+            await StartWebApplicationAsync(tailscaleAddress);
+            StartTailscaleWatchLoop();
+            audioBroadcastService.Start();
+        }
+
+        /// <summary>
+        /// 監視ページの待ち受け先をローカル端末と Tailscale に限定する。
+        /// </summary>
+        /// <param name="options">Kestrel の設定。</param>
+        /// <param name="listenPort">待ち受けポート。</param>
+        /// <param name="tailscaleAddress">Tailscale の IPv4 アドレス。</param>
+        private static void ConfigureListenEndpoints(KestrelServerOptions options, int listenPort, string? tailscaleAddress)
+        {
+            options.Listen(IPAddress.Loopback, listenPort);
+
+            if (IPAddress.TryParse(tailscaleAddress, out var parsedAddress))
+            {
+                options.Listen(parsedAddress, listenPort);
+            }
+        }
+
+        /// <summary>
+        /// 監視 Web サーバーを構築して起動する。
+        /// </summary>
+        /// <param name="tailscaleAddress">Tailscale の IPv4 アドレス。</param>
+        private async Task StartWebApplicationAsync(string? tailscaleAddress)
+        {
             var builder = WebApplication.CreateBuilder();
             builder.Logging.ClearProviders();
             builder.WebHost.ConfigureKestrel(options =>
             {
-                ConfigureListenEndpoints(options, port);
+                ConfigureListenEndpoints(options, port, tailscaleAddress);
             });
 
+            var webApp = BuildWebApplication(builder);
+
+            try
+            {
+                await webApp.StartAsync();
+            }
+            catch
+            {
+                await webApp.DisposeAsync();
+                lock (syncRoot)
+                {
+                    statusText = "監視ページの起動に失敗しました。";
+                }
+
+                throw;
+            }
+
+            lock (syncRoot)
+            {
+                app = webApp;
+                listeningTailscaleAddress = tailscaleAddress;
+                statusText = tailscaleAddress is null
+                    ? "監視ページを起動しました。Tailscale アドレスを待機しています。"
+                    : $"監視ページを起動しました。Tailscale: {tailscaleAddress}";
+            }
+        }
+
+        /// <summary>
+        /// 監視ページのルートと API を登録する。
+        /// </summary>
+        /// <param name="builder">WebApplication のビルダー。</param>
+        /// <returns>構築済みの WebApplication。</returns>
+        private WebApplication BuildWebApplication(WebApplicationBuilder builder)
+        {
             var webApp = builder.Build();
             webApp.UseWebSockets();
 
@@ -354,43 +421,116 @@ namespace RemoteCamera
 
             webApp.MapGet("/favicon.ico", () => Results.NoContent());
 
-            try
-            {
-                await webApp.StartAsync();
-            }
-            catch
-            {
-                await webApp.DisposeAsync();
-                lock (syncRoot)
-                {
-                    statusText = "監視ページの起動に失敗しました。";
-                }
-
-                throw;
-            }
-
-            lock (syncRoot)
-            {
-                app = webApp;
-                statusText = "監視ページを起動しました。";
-            }
-
-            audioBroadcastService.Start();
+            return webApp;
         }
 
         /// <summary>
-        /// 監視ページの待ち受け先をローカル端末と Tailscale に限定する。
+        /// Tailscale の変化を監視し、必要なら待ち受けを張り直す。
         /// </summary>
-        /// <param name="options">Kestrel の設定。</param>
-        /// <param name="listenPort">待ち受けポート。</param>
-        private static void ConfigureListenEndpoints(KestrelServerOptions options, int listenPort)
+        private void StartTailscaleWatchLoop()
         {
-            options.Listen(IPAddress.Loopback, listenPort);
-
-            var tailscaleAddress = NetworkHelper.TryGetTailscaleIpv4Address();
-            if (IPAddress.TryParse(tailscaleAddress, out var parsedAddress))
+            lock (syncRoot)
             {
-                options.Listen(parsedAddress, listenPort);
+                if (disposed || tailscaleWatchTask is not null)
+                {
+                    return;
+                }
+
+                tailscaleWatchCts = new CancellationTokenSource();
+                tailscaleWatchTask = WatchTailscaleAddressAsync(tailscaleWatchCts.Token);
+            }
+        }
+
+        /// <summary>
+        /// Tailscale の IPv4 変化を定期確認する。
+        /// </summary>
+        /// <param name="cancellationToken">停止要求。</param>
+        private async Task WatchTailscaleAddressAsync(CancellationToken cancellationToken)
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+
+            try
+            {
+                while (await timer.WaitForNextTickAsync(cancellationToken))
+                {
+                    if (disposed)
+                    {
+                        return;
+                    }
+
+                    var currentAddress = NetworkHelper.TryGetTailscaleIpv4Address();
+                    if (string.Equals(currentAddress, listeningTailscaleAddress, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    await RestartWebApplicationAsync(currentAddress, cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // 終了処理ではそのまま抜ける。
+            }
+            catch (Exception ex)
+            {
+                lock (syncRoot)
+                {
+                    statusText = $"Tailscale の待ち受け確認に失敗しました。{ex.Message}";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Tailscale の変化に合わせて監視 Web サーバーを張り直す。
+        /// </summary>
+        /// <param name="tailscaleAddress">現在の Tailscale IPv4 アドレス。</param>
+        /// <param name="cancellationToken">停止要求。</param>
+        private async Task RestartWebApplicationAsync(string? tailscaleAddress, CancellationToken cancellationToken)
+        {
+            await restartGate.WaitAsync(cancellationToken);
+            try
+            {
+                if (disposed)
+                {
+                    return;
+                }
+
+                WebApplication? currentApp;
+                lock (syncRoot)
+                {
+                    if (disposed || string.Equals(listeningTailscaleAddress, tailscaleAddress, StringComparison.Ordinal))
+                    {
+                        return;
+                    }
+
+                    currentApp = app;
+                    app = null;
+                    listeningTailscaleAddress = null;
+                    statusText = tailscaleAddress is null
+                        ? "Tailscale を待機中です。"
+                        : $"Tailscale を検出しました。再接続しています。{tailscaleAddress}";
+                }
+
+                if (currentApp is not null)
+                {
+                    try
+                    {
+                        await currentApp.StopAsync(cancellationToken);
+                    }
+                    catch
+                    {
+                        // 張り直しを優先する。
+                    }
+
+                    await currentApp.DisposeAsync();
+                }
+
+                await StartWebApplicationAsync(tailscaleAddress);
+                audioBroadcastService.Start();
+            }
+            finally
+            {
+                restartGate.Release();
             }
         }
 
@@ -413,6 +553,34 @@ namespace RemoteCamera
                 app = null;
             }
 
+            CancellationTokenSource? watchCts;
+            Task? watchTask;
+            lock (syncRoot)
+            {
+                watchCts = tailscaleWatchCts;
+                watchTask = tailscaleWatchTask;
+                tailscaleWatchCts = null;
+                tailscaleWatchTask = null;
+            }
+
+            if (watchCts is not null)
+            {
+                watchCts.Cancel();
+                watchCts.Dispose();
+            }
+
+            if (watchTask is not null)
+            {
+                try
+                {
+                    await watchTask;
+                }
+                catch
+                {
+                    // 終了時は続行する。
+                }
+            }
+
             if (webApp is not null)
             {
                 try
@@ -433,6 +601,8 @@ namespace RemoteCamera
             {
                 statusText = "停止";
             }
+
+            restartGate.Dispose();
         }
 
         /// <summary>
