@@ -2,6 +2,9 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -225,6 +228,39 @@ namespace RemoteCamera
                 await context.Response.WriteAsync(monitorJsText);
             });
 
+            webApp.MapGet("/site.webmanifest", () => Results.Json(new
+            {
+                name = "RemoteCamera Monitor",
+                short_name = "Monitor",
+                description = "RemoteCamera のスマホ監視ページ",
+                start_url = "/",
+                scope = "/",
+                display = "standalone",
+                background_color = "#0b1220",
+                theme_color = "#10223a",
+                icons = new[]
+                {
+                    new
+                    {
+                        src = "/web-icon-192.png",
+                        sizes = "192x192",
+                        type = "image/png",
+                        purpose = "any maskable"
+                    },
+                    new
+                    {
+                        src = "/web-icon-512.png",
+                        sizes = "512x512",
+                        type = "image/png",
+                        purpose = "any maskable"
+                    }
+                }
+            }));
+
+            webApp.MapGet("/web-icon-180.png", () => CreateBrowserIconResult(180));
+            webApp.MapGet("/web-icon-192.png", () => CreateBrowserIconResult(192));
+            webApp.MapGet("/web-icon-512.png", () => CreateBrowserIconResult(512));
+
             webApp.MapGet("/status", () => Results.Json(CreateStatus()));
             webApp.MapGet("/devices", () => Results.Json(CreateCameraDevicesResponse()));
             webApp.MapGet("/network-cameras", () => Results.Json(CreateNetworkCameraResponse()));
@@ -428,7 +464,7 @@ namespace RemoteCamera
                 await context.Response.Body.WriteAsync(bytes);
             });
 
-            webApp.MapGet("/favicon.ico", () => Results.NoContent());
+            webApp.MapGet("/favicon.ico", () => CreateBrowserIconResult(64));
 
             return webApp;
         }
@@ -714,6 +750,130 @@ namespace RemoteCamera
         {
             var path = Path.Combine(AppContext.BaseDirectory, AssetFolderName, fileName);
             return File.ReadAllText(path, Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// ブラウザのホーム画面用アイコンを PNG で返す。
+        /// </summary>
+        /// <param name="size">生成する画像サイズ。</param>
+        /// <returns>PNG 画像のレスポンス。</returns>
+        private static IResult CreateBrowserIconResult(int size)
+        {
+            using var bitmap = CreateBrowserIconBitmap(size);
+            using var stream = new MemoryStream();
+            bitmap.Save(stream, ImageFormat.Png);
+
+            return Results.File(stream.ToArray(), "image/png");
+        }
+
+        /// <summary>
+        /// スマホのホーム画面で見分けやすいブラウザ専用アイコンを作成する。
+        /// </summary>
+        /// <param name="size">画像サイズ。</param>
+        /// <returns>生成したビットマップ。</returns>
+        private static Bitmap CreateBrowserIconBitmap(int size)
+        {
+            var bitmap = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+            using var graphics = Graphics.FromImage(bitmap);
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            graphics.Clear(Color.Transparent);
+
+            var scale = size / 512f;
+            graphics.ScaleTransform(scale, scale);
+            DrawBrowserIcon(graphics);
+
+            return bitmap;
+        }
+
+        /// <summary>
+        /// ブラウザ監視ページ用のアイコンを描画する。
+        /// </summary>
+        /// <param name="graphics">描画先。</param>
+        private static void DrawBrowserIcon(Graphics graphics)
+        {
+            var backgroundRect = new RectangleF(24, 24, 464, 464);
+            using var backgroundPath = CreateRoundedRectPath(backgroundRect, 112f);
+            using var backgroundBrush = new LinearGradientBrush(
+                backgroundRect,
+                Color.FromArgb(255, 16, 34, 58),
+                Color.FromArgb(255, 5, 12, 24),
+                45f);
+            using var borderPen = new Pen(Color.FromArgb(210, 107, 211, 255), 8f);
+            graphics.FillPath(backgroundBrush, backgroundPath);
+            graphics.DrawPath(borderPen, backgroundPath);
+
+            var phoneRect = new RectangleF(148, 82, 216, 348);
+            using var phonePath = CreateRoundedRectPath(phoneRect, 42f);
+            using var phoneBrush = new SolidBrush(Color.FromArgb(255, 226, 241, 255));
+            using var phoneShadowBrush = new SolidBrush(Color.FromArgb(80, 0, 0, 0));
+            using var phoneShadowPath = CreateRoundedRectPath(new RectangleF(158, 94, 216, 348), 42f);
+            graphics.FillPath(phoneShadowBrush, phoneShadowPath);
+            graphics.FillPath(phoneBrush, phonePath);
+
+            var screenRect = new RectangleF(170, 120, 172, 260);
+            using var screenPath = CreateRoundedRectPath(screenRect, 26f);
+            using var screenBrush = new LinearGradientBrush(
+                screenRect,
+                Color.FromArgb(255, 12, 25, 43),
+                Color.FromArgb(255, 24, 70, 98),
+                90f);
+            graphics.FillPath(screenBrush, screenPath);
+
+            using var mountBrush = new SolidBrush(Color.FromArgb(255, 107, 211, 255));
+            using var cameraBodyBrush = new SolidBrush(Color.FromArgb(255, 45, 62, 88));
+            using var lensOuterBrush = new SolidBrush(Color.FromArgb(255, 132, 223, 255));
+            using var lensInnerBrush = new SolidBrush(Color.FromArgb(255, 8, 17, 31));
+            using var alertBrush = new SolidBrush(Color.FromArgb(255, 255, 95, 112));
+
+            graphics.FillRectangle(mountBrush, 218, 170, 76, 18);
+            using var cameraBodyPath = CreateRoundedRectPath(new RectangleF(198, 184, 116, 74), 24f);
+            graphics.FillPath(cameraBodyBrush, cameraBodyPath);
+            graphics.FillEllipse(lensOuterBrush, 224, 194, 64, 64);
+            graphics.FillEllipse(lensInnerBrush, 238, 208, 36, 36);
+            graphics.FillEllipse(alertBrush, 282, 162, 28, 28);
+
+            using var wavePen = new Pen(Color.FromArgb(190, 107, 211, 255), 10f)
+            {
+                StartCap = LineCap.Round,
+                EndCap = LineCap.Round
+            };
+            graphics.DrawArc(wavePen, 122, 136, 112, 168, 128, 96);
+            graphics.DrawArc(wavePen, 278, 136, 112, 168, -44, 96);
+
+            using var homeBrush = new SolidBrush(Color.FromArgb(255, 132, 147, 168));
+            graphics.FillEllipse(homeBrush, 240, 396, 32, 32);
+        }
+
+        /// <summary>
+        /// 丸みのある矩形パスを作成する。
+        /// </summary>
+        /// <param name="rect">対象の矩形。</param>
+        /// <param name="radius">角丸の半径。</param>
+        /// <returns>作成したパス。</returns>
+        private static GraphicsPath CreateRoundedRectPath(RectangleF rect, float radius)
+        {
+            var path = new GraphicsPath();
+            var diameter = radius * 2f;
+
+            if (diameter <= 0f)
+            {
+                path.AddRectangle(rect);
+                path.CloseFigure();
+                return path;
+            }
+
+            var arc = new RectangleF(rect.Location, new SizeF(diameter, diameter));
+
+            path.AddArc(arc, 180, 90);
+            arc.X = rect.Right - diameter;
+            path.AddArc(arc, 270, 90);
+            arc.Y = rect.Bottom - diameter;
+            path.AddArc(arc, 0, 90);
+            arc.X = rect.Left;
+            path.AddArc(arc, 90, 90);
+            path.CloseFigure();
+
+            return path;
         }
 
         /// <summary>
