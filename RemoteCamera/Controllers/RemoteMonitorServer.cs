@@ -26,6 +26,7 @@ namespace RemoteCamera
         private readonly SemaphoreSlim restartGate = new(1, 1);
         private readonly string monitorHtmlTemplate;
         private readonly string monitorCssText;
+        private readonly string monitorJsText;
 
         private WebApplication? app;
         private bool disposed;
@@ -45,6 +46,7 @@ namespace RemoteCamera
             this.port = port;
             monitorHtmlTemplate = LoadAssetText("monitor.html");
             monitorCssText = LoadAssetText("monitor.css");
+            monitorJsText = LoadAssetText("monitor.js");
         }
 
         /// <summary>
@@ -214,6 +216,13 @@ namespace RemoteCamera
                 context.Response.ContentType = "text/css; charset=utf-8";
                 context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
                 await context.Response.WriteAsync(monitorCssText);
+            });
+
+            webApp.MapGet("/monitor.js", async context =>
+            {
+                context.Response.ContentType = "text/javascript; charset=utf-8";
+                context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
+                await context.Response.WriteAsync(monitorJsText);
             });
 
             webApp.MapGet("/status", () => Results.Json(CreateStatus()));
