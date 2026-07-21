@@ -1,47 +1,100 @@
-RemoteCamera is a Windows desktop app that captures camera video on a PC, 
-records MP4 files, and exposes a smartphone-friendly monitor page over the local network or Tailscale.
+# RemoteCamera 
 
-## 日本語
+RemoteCamera は、Windows PC に接続されたカメラやネットワークカメラを、
+スマホのブラウザから確認できるようにする監視アプリです。
 
-### 概要
+高機能な防犯カメラシステムというより、  
+「家・店舗・作業場に置いてある Windows PC を、そのまま簡易監視カメラとして使う」  
+ことを目的にしています。
 
-- RemoteCamera は、Windows PC 上でカメラ映像を取得し、録画し、
-- スマホのブラウザから確認する監視アプリです。
+PC 側でアプリを起動しておけば、同じ LAN 内のスマホから映像を確認できます。  
+外出先から確認したい場合は、Tailscale を使った安全な接続にも対応しています。
 
-### できること
+## このアプリの特徴
 
-- Windowsが認識するローカルカメラを選択
-- `NetworkCameras.json` に登録した RTSP カメラを選択(設定画面から設定可能)
-- PC 画面でプレビュー可能
-- MP4 形式で録画可能
-- スマホのブラウザで監視ページを表示
-- ※Tailscale経由でのアクセスになります。
-- PC のマイク音声をスマホへ配信。マイクの設定を既定の設定しなければなりません。
-- スマホ側で音量スライダーと音声レベルメーターを表示
-- PC 側とブラウザ側の両方からデバイスカメラとネットワークカメラを設定
-- 自動検出で ONVIF 対応カメラと一般的な RTSP ポートを確認可能
+### Windows PC をそのまま監視用の親機にできる
 
-### 現在の構成
+専用の NVR やクラウド契約を前提にせず、手元の Windows PC を監視用の親機として使えます。
 
-- ローカルカメラは OpenCvSharp の `VideoCapture(index, VideoCaptureAPIs.DSHOW)` で開く
-- RTSP カメラは OpenCvSharp の `VideoCapture(rtspUrl, VideoCaptureAPIs.FFMPEG)` で開く
-- 監視ページは ASP.NET Core の最小 API で提供する
-- 音声は NAudio で取得して WebSocket で配信する
-- 映像は `/snapshot.jpg` の定期取得で表示する
+USB カメラ、内蔵カメラ、RTSP 対応のネットワークカメラを扱えるため、  
+「まず手元の機材で試したい」場面に向いています。
 
-### ネットワークカメラ設定
+### スマホ側はアプリ不要
 
-`NetworkCameras.json` は設定ファイルです。
+スマホ側は専用アプリを入れず、ブラウザで監視ページを開くだけです。
 
-主な項目:
+同じ LAN 内なら、PC に表示される URL をスマホで開いて確認できます。  
+ホーム画面に追加しておけば、スマホアプリに近い感覚で開けます。
 
-- `enabled`: 利用する場合は `true`
-- `cameraId`: 識別子
-- `displayName`: 画面表示名
-- `hostAddress`: ホスト名または IP アドレス
-- `rtspUrl`: 接続先 RTSP URL
+### まず LAN 内で使えて、必要な人だけ外から見られる
 
-例:
+RemoteCamera は、いきなりインターネットへ直接公開する前提ではありません。
+
+まずは自宅や店舗などの同じネットワーク内で動かし、  
+外出先から見たい人だけ Tailscale で外部アクセスを追加する考え方です。
+
+ポート開放や固定グローバル IP を前提にしないため、家庭用回線でも扱いやすい構成です。
+
+### PC 側とスマホ側の両方から操作できる
+
+PC 側の画面だけでなく、スマホの監視ページからも操作できます。
+
+- カメラ選択
+- 録画開始
+- 録画停止
+- プレビュー表示の切り替え
+- 音声の受信
+- ネットワークカメラ設定
+
+現場に置いた PC を直接触らなくても、スマホから最低限の確認と操作ができます。
+
+### ネットワークカメラにも対応
+
+RTSP URL を登録することで、IP カメラや Wi-Fi カメラも利用できます。
+
+ONVIF の WS-Discovery と、一般的な RTSP ポートの確認による自動検出にも対応しています。  
+自動検出で見つからない機種でも、RTSP URL が分かれば手動登録できます。
+
+### スマホで見やすい監視画面
+
+監視ページはスマホで使うことを前提にしています。
+
+映像の確認、拡大、移動、録画操作、音声操作をブラウザ上で行えます。  
+スマホで「ちょっと確認したい」ときに、PC 画面を開き直さなくて済むようにしています。
+
+## できること
+
+- Windows が認識するローカルカメラの表示
+- RTSP ネットワークカメラの表示
+- ONVIF 対応カメラの検出
+- MP4 録画
+- スマホブラウザからの映像確認
+- スマホブラウザからのカメラ切り替え
+- スマホブラウザからの録画開始・停止
+- PC マイク音声のスマホ配信
+- Tailscale 経由の外部アクセス
+- Windows ログオン時の自動起動
+
+## 想定している使い方
+
+- 自宅の様子を別室やスマホから確認したい
+- 店舗や作業場の PC を簡易監視端末にしたい
+- 専用クラウドカメラを増やす前に、手元の PC とカメラで試したい
+- LAN 内では簡単に使い、必要なときだけ外から確認したい
+- コマンド操作ではなく、Windows アプリとして使いたい
+
+## 使い方
+
+1. Windows PC で RemoteCamera を起動します。
+2. ローカルカメラ、またはネットワークカメラを選択します。
+3. PC 画面に表示されるローカル URL をスマホのブラウザで開きます。
+4. 外出先から見る場合は、PC とスマホの両方に Tailscale を入れて、Tailscale URL を開きます。
+5. 必要に応じて、スマホ側から録画やカメラ切り替えを行います。
+
+## ネットワークカメラ設定
+
+ネットワークカメラは `NetworkCameras.json` に保存されます。  
+アプリ内の設定画面から登録・編集できます。
 
 ```json
 [
@@ -55,109 +108,34 @@ records MP4 files, and exposes a smartphone-friendly monitor page over the local
 ]
 ```
 
-### 自動検出
+## 注意事項
 
-自動検出は次の順で探します。
+- PC がスリープ、休止、サインアウトすると監視は止まります。
+- PC がロック画面の状態でも、アプリが動いていれば監視は継続できます。
+- スマホのロック画面での継続視聴は対象外です。
+- Tailscale は同梱していません。外部アクセスが必要な場合は別途インストールしてください。
+- インターネットへ直接公開する用途は想定していません。
+- カメラの種類やドライバによっては正常に映らない場合があります。
 
-- ONVIF の WS-Discovery
-- RTSP の簡易ポート確認
+## 技術構成
 
-ONVIFやRTFPの一般的なWi-Fiカメラを自動検出する可能性があります。  
-ただし、認証が必要な機種や、ONVIF に対応していない機種は手動登録が必要です。
-
-### 使い方
-
-1. Windows PC で RemoteCamera を起動
-2. ローカルカメラまたはネットワークカメラを選択
-3. `ネットワーク設定` で保存・編集・自動検出を実行
-4. 画面に出るローカル URL か Tailscale URL をスマホのブラウザで開く
-5. スマホ側でカメラを選び、録画や音声を操作する
-
-### 注意事項
-
-- PC がロック・パスワード入力状態でもアプリは起動し続けます。
-- スリープ / 休止 / サインアウトに入ると監視は止まります
-- スマホのロック画面は対象外です
-- Tailscale は同梱していません。別途サイトからインストールしてください
+- .NET Windows Forms
+- ASP.NET Core minimal API
+- OpenCvSharp
+- NAudio
+- RTSP
+- ONVIF WS-Discovery
+- Tailscale
 
 ## English
 
-### Overview
+RemoteCamera is a Windows desktop app that turns a PC into a simple camera monitor host.
 
-RemoteCamera captures camera video on a Windows PC, records MP4 files, and exposes a smartphone-friendly monitor page over the local network or Tailscale.
+It can use local Windows cameras and RTSP network cameras, record MP4 files, and expose a smartphone-friendly monitor page over the local network.  
+For remote access, it can also be used with Tailscale without directly exposing the app to the public internet.
 
-### Features
-
-- Select a local camera recognized by Windows
-- Select an RTSP camera registered in `NetworkCameras.json`
-- Show live preview on the PC
-- Record MP4 files
-- Open the monitor page from a smartphone browser
-- Access the app over Tailscale
-- Stream microphone audio to the smartphone
-- Adjust smartphone playback volume and view an audio level meter
-- Edit network camera settings from both the PC app and the browser
-- Discover cameras with ONVIF WS-Discovery and common RTSP port checks
-
-### Current architecture
-
-- Local cameras are opened with OpenCvSharp `VideoCapture(index, VideoCaptureAPIs.DSHOW)`
-- RTSP cameras are opened with OpenCvSharp `VideoCapture(rtspUrl, VideoCaptureAPIs.FFMPEG)`
-- The monitor page is served by ASP.NET Core minimal APIs
-- Audio is captured with NAudio and streamed over WebSocket
-- Video preview is rendered by repeatedly fetching `/snapshot.jpg`
-
-### Network camera configuration
-
-`NetworkCameras.json` lives in the application folder.
-
-Main fields:
-
-- `enabled`: set to `true` to use the camera
-- `cameraId`: unique identifier
-- `displayName`: label shown in the UI
-- `hostAddress`: host name or IP address
-- `rtspUrl`: RTSP connection URL
-
-Example:
-
-```json
-[
-  {
-    "enabled": true,
-    "cameraId": "entrance-camera",
-    "displayName": "Entrance Camera",
-    "hostAddress": "192.168.1.10",
-    "rtspUrl": "rtsp://user:password@192.168.1.10:554/stream1"
-  }
-]
-```
-
-### Auto discovery
-
-Auto discovery runs in this order:
-
-- ONVIF WS-Discovery
-- Simple RTSP port checks
-
-Typical ONVIF-capable Wi-Fi cameras can often be found automatically.  
-If the device requires authentication or does not support ONVIF, manual setup may still be needed.
-
-### How to use
-
-1. Start RemoteCamera on the Windows PC
-2. Select a local camera or a network camera
-3. Use `ネットワーク設定` if you want to save, edit, or auto-discover cameras
-4. Open the displayed local URL or Tailscale URL in the smartphone browser
-5. Select a camera on the browser and control recording or audio
-
-### Notes
-
-- This design assumes the PC app keeps running while the PC is locked
-- Sleep, hibernate, or sign-out will stop monitoring
-- Continuous viewing on the smartphone lock screen is not a target in this app
-- Tailscale is not bundled and must be installed separately
+The main goal is not to replace a full security camera system, but to make it easy to check a home, shop, workspace, or PC-side camera from a smartphone browser.
 
 ## Third-party software
 
-See [ThirdPartyNotices.txt](./ThirdPartyNotices.txt).
+See [ThirdPartyNotices.txt](./RemoteCamera/ThirdPartyNotices.txt).

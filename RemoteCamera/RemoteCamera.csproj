@@ -26,9 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="ReadMe.md">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="ReadMe.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
