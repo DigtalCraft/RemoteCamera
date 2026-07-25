@@ -22,6 +22,7 @@
       </div>
       <div class="hero-meta">
         <div class="pill" id="statePill" data-state="waiting">起動待ち</div>
+        <button class="install-button" id="installButton" type="button" hidden>ホーム画面に追加</button>
         <div class="chips">
           <span class="chip">Local: __LOCAL_URL__</span>
           <span class="chip">Tailscale: __TAILSCALE_URL__</span>
@@ -79,6 +80,8 @@
           <div class="preview-toolbar">
             <div class="preview-gesture-note">スマホは2本指で拡大 / PCはホイールで拡大</div>
             <div class="preview-toolbar-actions">
+              <label class="brightness-control" for="brightnessRange">明るさ</label>
+              <input class="brightness-range" id="brightnessRange" type="range" min="50" max="180" step="5" value="100" />
               <button class="preview-zoom-button" id="previewZoomOutBtn" type="button">-</button>
               <span class="preview-zoom-value" id="previewZoomValue">100%</span>
               <button class="preview-zoom-button" id="previewZoomInBtn" type="button">+</button>

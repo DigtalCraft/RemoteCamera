@@ -33,6 +33,23 @@ namespace RemoteCamera
         private int frameVersion;
         private CvSize recordingFrameSize;
         private CameraSourceType? selectedSourceType;
+        private readonly HOGDescriptor personDetector = new();
+        private bool personDetected;
+        private int personDetectionFrame;
+
+        /// <summary>
+        /// 最新フレームに人物が検出されたかどうかを返す。
+        /// </summary>
+        public bool IsPersonDetected
+        {
+            get
+            {
+                lock (syncRoot)
+                {
+                    return personDetected;
+                }
+            }
+        }
 
         /// <summary>
         /// カメラが利用可能な状態かどうかを返す。
@@ -621,6 +638,17 @@ namespace RemoteCamera
 
                     var previewFrame = ConvertMatToBitmap(frame);
 
+                    personDetectionFrame++;
+                    if (personDetectionFrame >= 5)
+                    {
+                        personDetectionFrame = 0;
+                        var detected = DetectPerson(frame);
+                        lock (syncRoot)
+                        {
+                            personDetected = detected;
+                        }
+                    }
+
                     lock (syncRoot)
                     {
                         if (disposed)
@@ -660,6 +688,18 @@ namespace RemoteCamera
                     statusText = $"カメラの取得に失敗しました。{ex.Message}";
                 }
             }
+        }
+
+        /// <summary>
+        /// OpenCVの標準HOG検出器で人物の有無を判定する。
+        /// </summary>
+        /// <param name="frame">判定対象の画像。</param>
+        /// <returns>人物が見つかった場合は true。</returns>
+        private bool DetectPerson(Mat frame)
+        {
+            personDetector.SetSVMDetector(HOGDescriptor.GetDefaultPeopleDetector());
+            personDetector.DetectMultiScale(frame, out var found, 0, new CvSize(8, 8), new CvSize(32, 32), 1.05, 2);
+            return found.Length > 0;
         }
 
         /// <summary>

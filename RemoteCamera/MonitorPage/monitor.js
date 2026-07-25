@@ -47,11 +47,15 @@ const previewZoomOutBtn = document.getElementById('previewZoomOutBtn');
 const previewZoomValue = document.getElementById('previewZoomValue');
 const previewZoomInBtn = document.getElementById('previewZoomInBtn');
 const previewResetBtn = document.getElementById('previewResetBtn');
+const brightnessRange = document.getElementById('brightnessRange');
+const installButton = document.getElementById('installButton');
 
 const audioVolumeStorageKey = 'remote-camera-audio-volume';
 const previewMinScale = 1;
 const previewMaxScale = 4;
 const previewScaleStep = 0.25;
+const brightnessStorageKey = 'remote-camera-brightness';
+const snapshotRefreshIntervalMs = 100;
 
 let actionBusy = false;
 let cameraSwitchBusy = false;
@@ -79,6 +83,117 @@ let previewDragOriginY = 0;
 let previewPinchStartDistance = 0;
 let previewPinchStartScale = 1;
 let previewMouseDragActive = false;
+
+/**
+ * プレビューの明るさを画面表示へ反映する。
+ *
+ * @param {number} value 明るさのパーセント
+ */
+function applyBrightness(value) {
+  const brightness = Math.max(50, Math.min(180, Number(value) || 100));
+  brightnessRange.value = String(brightness);
+  snapshot.style.filter = 'brightness(' + (brightness / 100) + ')';
+  window.localStorage.setItem(brightnessStorageKey, String(brightness));
+}
+
+/**
+ * 保存済みの明るさを読み込む。
+ */
+function initializeBrightness() {
+  const savedBrightness = window.localStorage.getItem(brightnessStorageKey);
+  applyBrightness(savedBrightness || 100);
+  brightnessRange.addEventListener('input', () => applyBrightness(brightnessRange.value));
+}
+let installPromptEvent = null;
+
+/**
+ * ホーム画面への追加状態を判定する。
+ *
+ * @returns {boolean} アプリ表示中かどうか
+ */
+function isInstalledApp() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+
+/**
+ * ホーム画面追加ボタンの表示を更新する。
+ */
+function updateInstallButton() {
+  if (!installButton) {
+    return;
+  }
+
+  if (isInstalledApp()) {
+    installButton.hidden = false;
+    installButton.disabled = true;
+    installButton.textContent = 'ホーム画面に追加済み';
+    return;
+  }
+
+  // Android Chromeなどはイベントを受け取るまでInstall操作を開始できない。
+  if (installPromptEvent) {
+    installButton.hidden = false;
+    installButton.disabled = false;
+    installButton.textContent = 'ホーム画面に追加';
+    return;
+  }
+
+  // iPhoneはJavaScriptからInstallダイアログを開けないため、操作案内を表示する。
+  const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  if (isIos) {
+    installButton.hidden = false;
+    installButton.disabled = false;
+    installButton.textContent = '追加方法を表示';
+  }
+}
+
+/**
+ * ホーム画面追加のブラウザ操作を開始する。
+ */
+async function installMonitorApp() {
+  if (isInstalledApp()) {
+    return;
+  }
+
+  if (!installPromptEvent) {
+    window.alert('Safariの共有ボタンから「ホーム画面に追加」を選んでください。');
+    return;
+  }
+
+  installPromptEvent.prompt();
+  const result = await installPromptEvent.userChoice;
+  installPromptEvent = null;
+  updateInstallButton();
+
+  if (result.outcome === 'accepted') {
+    installButton.disabled = true;
+    installButton.textContent = '追加済み';
+  }
+}
+
+/**
+ * ホーム画面追加に関するブラウザイベントを登録する。
+ */
+function initializeInstallButton() {
+  if (!installButton) {
+    return;
+  }
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installPromptEvent = event;
+    updateInstallButton();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installPromptEvent = null;
+    updateInstallButton();
+  });
+
+  installButton.addEventListener('click', installMonitorApp);
+  updateInstallButton();
+}
 
 /**
  * 数値を最小値と最大値の範囲に収める。
@@ -1058,6 +1173,10 @@ async function refreshStatus() {
     const pathText = data.recordingPath ? data.recordingPath : '未選択';
     const statusText = data.cameraStatus ? data.cameraStatus : '未起動';
 
+    if (data.personDetected) {
+      navigator.setAppBadge?.(1).catch?.(() => {});
+    }
+
     statusValue.textContent = statusText;
     recordingValue.textContent = recordingText;
     cameraValue.textContent = cameraText;
@@ -1278,7 +1397,7 @@ function startTimers() {
   setInterval(refreshStatus, 1000);
   setInterval(refreshDevices, 5000);
   setInterval(refreshNetworkCameras, 5000);
-  setInterval(refreshSnapshot, 500);
+  setInterval(refreshSnapshot, snapshotRefreshIntervalMs);
   setInterval(() => {
     // レベルメーターは少しずつ減衰させて、見た目の追従性を作る。
     if (currentAudioLevel <= 0.01) {
@@ -1298,12 +1417,15 @@ function startTimers() {
  */
 function initializeMonitorPage() {
   bindEvents();
+  initializeInstallButton();
+  navigator.clearAppBadge?.().catch?.(() => {});
 
   // 初期表示時に一覧と状態を一度そろえる。
   refreshDevices();
   refreshNetworkCameras();
   refreshNetworkCameraConfigs();
   initializeAudioVolume();
+  initializeBrightness();
   applyPreviewTransform();
   refreshStatus();
   startTimers();
