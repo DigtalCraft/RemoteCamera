@@ -1,7 +1,6 @@
-# RemoteCamera 
+# RemoteCamera
 
-RemoteCamera は、Windows PC に接続されたカメラやネットワークカメラを、
-スマホのブラウザから確認できるようにする監視アプリです。
+RemoteCamera は、Windows PC に接続されたカメラやネットワークカメラを、スマホのブラウザから確認できるようにする監視アプリです。
 
 高機能な防犯カメラシステムというより、  
 「家・店舗・作業場に置いてある Windows PC を、そのまま簡易監視カメラとして使う」  
@@ -117,6 +116,32 @@ ONVIF の WS-Discovery と、一般的な RTSP ポートの確認による自動
 - インターネットへ直接公開する用途は想定していません。
 - カメラの種類やドライバによっては正常に映らない場合があります。
 
+## 証明書なしのインストーラー警告について
+
+現在のインストーラーには、発行元をWindowsへ証明する**コード署名証明書**を付けていません。
+そのため、初回起動時やダウンロード直後に Microsoft Defender SmartScreen などが
+
+-「保護されました」
+-「発行元を確認できません」
+
+といった警告を表示することがあります。
+これは署名がないために表示される警告であり、
+警告だけではマルウェアと判定されたことを意味しません。
+
+ただし、安全が保証されるわけではありません。
+インストーラーは、このリポジトリのリリースまたは
+信頼できる作成者から入手したものだけを使用してください。
+不明なサイト、チャット、メールなどから
+受け取った同名ファイルでは［詳細情報］→［実行］を選ばないでください。
+
+ソースから自分でインストーラーを作成する場合は、
+内容を確認したうえでReleaseビルドと
+セットアッププロジェクトのビルドを行ってください。
+将来、コード署名証明書を導入して署名したリリースでは、
+この警告が減る場合があります。
+ただし、SmartScreenの表示は署名の有無だけでなく、
+配布実績などにも影響されます。
+
 ## 技術構成
 
 - .NET Windows Forms
@@ -134,7 +159,30 @@ RemoteCamera is a Windows desktop app that turns a PC into a simple camera monit
 It can use local Windows cameras and RTSP network cameras, record MP4 files, and expose a smartphone-friendly monitor page over the local network.  
 For remote access, it can also be used with Tailscale without directly exposing the app to the public internet.
 
-The main goal is not to replace a full security camera system, but to make it easy to check a home, shop, workspace, or PC-side camera from a smartphone browser.
+The main goal is not to replace a full security camera system, 
+but to make it easy to check a home, shop, workspace, or PC-side camera from a smartphone browser.
+
+## About the Unsigned Installer
+
+This installer is currently **not digitally signed** with a code-signing certificate.
+Because of this, Microsoft Defender SmartScreen or your web browser may display security warnings such as:
+
+- "Windows protected your PC"
+- "Unknown publisher"
+
+These warnings are expected for unsigned applications and **do not necessarily mean that the installer is malicious**.
+However, the absence of these warnings does not guarantee safety either.
+Please download the installer **only from this repository's official Releases page or directly from the developer**.
+
+**Do not** click **"Run anyway"** for installers with the same file name that were obtained from unknown websites, file-sharing services, email attachments, or chat applications.
+
+If you prefer, you can build the installer yourself from the source code. 
+Simply review the source, build the application in **Release** mode, and then build the setup project.
+
+In the future, releases may be digitally signed with a code-signing certificate, 
+which can reduce SmartScreen warnings. However, 
+SmartScreen also considers factors such as the application's reputation and download history, 
+so a digital signature alone does not always eliminate these warnings.
 
 ## Third-party software
 
