@@ -130,3 +130,53 @@ If the device requires authentication or does not support ONVIF, manual setup ma
 - Sleep, hibernate, or sign-out will stop monitoring.
 - Continuous viewing on the smartphone lock screen is not a target in this app.
 - Tailscale is not bundled and must be installed separately.
+
+
+---
+
+# ⚠️ Installation Notice / インストール時の注意
+
+## 🇯🇵 日本語
+
+現在、このインストーラーはコードサイニング証明書によるデジタル署名を行っていません。
+
+そのため、Windows Defender SmartScreen やブラウザによってセキュリティ警告が表示される場合があります。
+
+本ソフトウェアは **この GitHub Releases ページのみ** で配布しています。
+ダウンロード元が正しいことを確認したうえでインストールしてください。
+
+### SmartScreen が表示された場合
+
+1. **「詳細情報」** をクリックします。
+2. ファイル名が **RemoteCameraSetup.msi**（または公開されているファイル名）であることを確認します。
+3. **「実行」** をクリックしてインストールしてください。
+
+> **注意**
+>
+> - 証明書をインストールする必要はありません。
+> - Windows が証明書のインストールを求めた場合は **「いいえ」** を選択してください。
+> - GitHub Releases 以外から入手したインストーラーは実行しないでください。
+
+---
+
+## 🇺🇸 English
+
+This installer is currently **not digitally signed** with a code-signing certificate.
+
+Because of this, Windows Defender SmartScreen or your web browser may display a security warning before the installer starts.
+
+This software is distributed **only through this GitHub Releases page**.
+Please verify that you downloaded the installer from the official release before running it.
+
+### If Windows Defender SmartScreen appears
+
+1. Click **More info**.
+2. Verify that the file name is **RemoteCameraSetup.msi** (or the published installer name).
+3. Click **Run anyway** to continue the installation.
+
+> **Note**
+>
+> - You do **not** need to install any certificate.
+> - If Windows asks you to install a certificate, select **No**.
+> - Do not run installers downloaded from websites other than the official GitHub Releases page.
+

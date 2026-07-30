@@ -116,6 +116,14 @@ ONVIF の WS-Discovery と、一般的な RTSP ポートの確認による自動
 - インターネットへ直接公開する用途は想定していません。
 - カメラの種類やドライバによっては正常に映らない場合があります。
 
+## 証明書なしのインストーラー警告について
+
+現在のインストーラーには、発行元をWindowsへ証明する**コード署名証明書**を付けていません。そのため、初回起動時やダウンロード直後に Microsoft Defender SmartScreen などが「保護されました」「発行元を確認できません」といった警告を表示することがあります。これは署名がないために表示される警告であり、警告だけではマルウェアと判定されたことを意味しません。
+
+ただし、安全が保証されるわけではありません。インストーラーは、このリポジトリのリリースまたは信頼できる作成者から入手したものだけを使用してください。不明なサイト、チャット、メールなどから受け取った同名ファイルでは［詳細情報］→［実行］を選ばないでください。
+
+ソースから自分でインストーラーを作成する場合は、内容を確認したうえでReleaseビルドとセットアッププロジェクトのビルドを行ってください。将来、コード署名証明書を導入して署名したリリースでは、この警告が減る場合があります。ただし、SmartScreenの表示は署名の有無だけでなく、配布実績などにも影響されます。
+
 ## 技術構成
 
 - .NET Windows Forms
@@ -134,6 +142,14 @@ It can use local Windows cameras and RTSP network cameras, record MP4 files, and
 For remote access, it can also be used with Tailscale without directly exposing the app to the public internet.
 
 The main goal is not to replace a full security camera system, but to make it easy to check a home, shop, workspace, or PC-side camera from a smartphone browser.
+
+## Unsigned installer warning
+
+The current installer is **not code-signed** with a certificate that identifies its publisher to Windows. Microsoft Defender SmartScreen or another Windows security feature may therefore show a warning such as *Windows protected your PC* or *Publisher could not be verified* when the installer is downloaded or first run. This warning is expected for an unsigned installer; by itself, it does not mean that the file has been identified as malware.
+
+It is not a guarantee of safety, however. Only use an installer obtained from this repository's release or directly from a trusted maintainer. Do not select **More info → Run anyway** for a file with the same name received from an unknown web site, chat, or email.
+
+If you build the installer yourself, review the source first, then create a Release build and build the setup project. A future release that uses a code-signing certificate may show fewer warnings. SmartScreen decisions can also depend on distribution reputation, not only on whether a file is signed.
 
 ## Third-party software
 
