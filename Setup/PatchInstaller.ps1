@@ -5,9 +5,16 @@ RemoteCameraのMSIへ自動起動設定を追加する。
 .DESCRIPTION
 スタートアップショートカットをMSI管理に変更し、
 旧版で残る可能性があるRunレジストリ値をインストール時に削除する。
+
+.PARAMETER MsiPath
+更新するMSIのパス。省略した場合は、DebugまたはReleaseで最後にビルドされたMSIを更新する。
 #>
 
 #requires -Version 7.0
+
+param(
+    [string]$MsiPath
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -227,13 +234,20 @@ function Update-RemoteCameraInstaller {
     }
 }
 
-$msiPaths = @(
-    (Join-Path $PSScriptRoot 'Debug\Setup.msi'),
-    (Join-Path $PSScriptRoot 'Release\Setup.msi')
-)
-
-foreach ($msiPath in $msiPaths) {
-    if (Test-Path -LiteralPath $msiPath) {
-        Update-RemoteCameraInstaller -MsiPath (Resolve-Path -LiteralPath $msiPath).Path
-    }
+$targetMsiPath = $MsiPath
+if ([string]::IsNullOrWhiteSpace($targetMsiPath)) {
+    $targetMsiPath = @(
+        (Join-Path $PSScriptRoot 'Debug\Setup.msi'),
+        (Join-Path $PSScriptRoot 'Release\Setup.msi')
+    ) |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        ForEach-Object { Get-Item -LiteralPath $_ } |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1 -ExpandProperty FullName
 }
+
+if ([string]::IsNullOrWhiteSpace($targetMsiPath) -or -not (Test-Path -LiteralPath $targetMsiPath)) {
+    throw '更新対象のSetup.msiが見つかりません。'
+}
+
+Update-RemoteCameraInstaller -MsiPath (Resolve-Path -LiteralPath $targetMsiPath).Path
