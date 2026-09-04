@@ -11,9 +11,17 @@ PC 側でアプリを起動しておけば、同じ LAN 内のスマホから映
 
 ## 最新版
 
-最新版は **RemoteCamera 1.0.1** です。
+最新版は **RemoteCamera 1.0.2** です。
 
-[GitHub Releases](https://github.com/DigtalCraft/RemoteCamera/releases/tag/RemoteCamera1.0.1) から `Setup.msi` をダウンロードしてください。
+[GitHub Releases](https://github.com/DigtalCraft/RemoteCamera/releases/tag/RemoteCamera1.0.2) から `Setup.msi` をダウンロードしてください。
+
+### 1.0.2 の変更内容
+
+- インストール時に旧版の自動起動ショートカットを削除し、インストール先を指すショートカットへ置き換え
+- アンインストール時に自動起動ショートカットを確実に削除
+- 旧版や開発時に残った `Run\RemoteCamera` レジストリ値を、新版インストール時に削除
+- Program Files へのインストール時に管理者権限を要求し、権限不足によるロールバックを防止
+- Debug版とRelease版のインストーラー後処理が混ざらないよう修正
 
 ### 1.0.1 の変更内容
 

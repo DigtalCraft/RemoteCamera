@@ -3,8 +3,9 @@
 RemoteCameraのMSIへ自動起動設定を追加する。
 
 .DESCRIPTION
-スタートアップショートカットをMSI管理に変更し、
-旧版で残る可能性があるRunレジストリ値をインストール時に削除する。
+スタートアップショートカットをMSI管理に変更する。
+旧版のショートカットはインストール時とアンインストール時に削除し、
+旧版で残る可能性があるRunレジストリ値はインストール時に削除する。
 
 .PARAMETER MsiPath
 更新するMSIのパス。省略した場合は、DebugまたはReleaseで最後にビルドされたMSIを更新する。
@@ -213,6 +214,10 @@ function Update-RemoteCameraInstaller {
         if (-not (Test-MsiRecord -Database $database -Sql 'SELECT `Directory` FROM `Directory` WHERE `Directory`=''StartupFolder''')) {
             Invoke-MsiNonQuery -Database $database -Sql 'INSERT INTO `Directory` (`Directory`,`Directory_Parent`,`DefaultDir`) VALUES (''StartupFolder'',''TARGETDIR'',''.'')'
         }
+
+        Invoke-MsiNonQuery -Database $database -Sql 'DELETE FROM `RemoveFile` WHERE `FileKey`=''RemoveLegacyRemoteCameraStartupShortcut'''
+        $removeFileSql = "INSERT INTO ``RemoveFile`` (``FileKey``,``Component_``,``FileName``,``DirProperty``,``InstallMode``) VALUES ('RemoveLegacyRemoteCameraStartupShortcut','$componentId','REMOTE~1.LNK|RemoteCamera.lnk','StartupFolder',3)"
+        Invoke-MsiNonQuery -Database $database -Sql $removeFileSql
 
         Invoke-MsiNonQuery -Database $database -Sql 'DELETE FROM `Shortcut` WHERE `Shortcut`=''RemoteCameraStartupShortcut'''
         $shortcutSql = "INSERT INTO ``Shortcut`` (``Shortcut``,``Directory_``,``Name``,``Component_``,``Target``,``Description``,``ShowCmd``,``WkDir``) VALUES ('RemoteCameraStartupShortcut','StartupFolder','REMOTE~1|RemoteCamera','$componentId','DefaultFeature','RemoteCamera',1,'TARGETDIR')"
